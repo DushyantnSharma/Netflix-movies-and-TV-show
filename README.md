@@ -4,7 +4,7 @@ This repository contains a SQL script (NETFLIX_SQL.sql) that creates a sample `n
 
 ## Files
 
-- `NETFLIX_SQL.sql` — SQL script that creates the `netflix` database, the `netflix_db` table, and contains example SELECT queries and analysis examples.
+- `NETFLIX_SQL.sql` — SQL script that creates the `netflix` database, the `netflix_db` table, and contains example SELECT queries and analysis examples. You can view the script here: https://github.com/DushyantnSharma/Netflix-movies-and-TV-show/blob/main/NETFLIX_SQL.sql
 
 ## Purpose
 
