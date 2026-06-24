@@ -1,145 +1,207 @@
-# Netflix Movies and TV Shows — SQL
+ Netflix SQL Database Analysis
 
-This repository contains a SQL script (NETFLIX_SQL.sql) that creates a sample `netflix` database and a single table `netflix_db`, and includes a set of example queries to analyze a Netflix titles dataset.
+Overview
 
-## Files
+This SQL file provides a complete database setup and analysis queries for Netflix content. It creates a netflix database with a table containing information about movies and TV shows available on Netflix, along with 12 pre-built analytical queries to extract insights from the data.
 
-- `NETFLIX_SQL.sql` — SQL script that creates the `netflix` database, the `netflix_db` table, and contains example SELECT queries and analysis examples. You can view the script here: https://github.com/DushyantnSharma/Netflix-movies-and-TV-show/blob/main/NETFLIX_SQL.sql
+Prerequisites
 
-## Purpose
 
-The SQL file demonstrates:
-- Creating a database and table for storing Netflix titles
-- Counting rows and grouping by type (Movie vs TV Show)
-- Finding top ratings per type
-- Filtering by release year, director, country, etc.
-- Basic date and string operations (parsing `date_added`, extracting duration)
+MySQL Server (or compatible SQL database)
+Basic SQL knowledge
+Access to execute DDL (Data Definition Language) statements
 
-## Prerequisites
 
-- MySQL or MariaDB server
-- A SQL client (mysql CLI, MySQL Workbench, or any DB GUI)
+Database Setup
 
-## How to run
+Database Creation
 
-1. Clone the repository or download `NETFLIX_SQL.sql`.
-2. Run the script against a MySQL server. Example using the mysql CLI:
+sqlCREATE DATABASE netflix;
+USE netflix;
 
-```bash
-mysql -u <username> -p < NETFLIX_SQL.sql
-```
+Table Schema
 
-This will create a database named `netflix` and a table named `netflix_db`. The script only defines the table and example queries; it does not insert dataset rows. To actually run the example SELECT queries, you must first load data into the `netflix_db` table (for example, from a CSV import).
+The netflix_db table contains the following columns:
 
-## About the table schema
+ColumnData TypeDescriptionshow_idVARCHAR(6)Unique identifier for each showtypeVARCHAR(10)Content type: 'Movie' or 'TV Show'titleVARCHAR(150)Title of the contentdirectorVARCHAR(209)Director(s) of the contentcastVARCHAR(1000)Cast memberscountryVARCHAR(150)Country/countries where content was produceddate_addedVARCHAR(50)Date the content was added to Netflixrelease_yearINTYear the content was releasedratingVARCHAR(10)Content rating (e.g., PG, R, 13+, etc.)durationVARCHAR(15)Duration in minutes (for movies) or seasons (for TV shows)listed_inVARCHAR(100)Genre/category classificationdescriptionVARCHAR(250)Brief description of the content
 
-The script creates the table with all columns as text (VARCHAR) except `release_year` which is an INT:
+Included Queries
 
-- `show_id VARCHAR(6)`
-- `type VARCHAR(10)`
-- `title VARCHAR(150)`
-- `director VARCHAR(209)`
-- `cast VARCHAR(1000)`
-- `country VARCHAR(150)`
-- `date_added VARCHAR(50)`
-- `release_year INT`
-- `rating VARCHAR(10)`
-- `duration VARCHAR(15)`
-- `listed_in VARCHAR(100)`
-- `description VARCHAR(250)`
+1. Dataset Overview
 
-Notes:
-- `date_added` is stored as a VARCHAR and parsed in queries with `STR_TO_DATE()`; consider storing it as DATE.
-- `duration` stores values like `90 min` or `3 Seasons`; parsing numeric duration requires string operations.
 
-## Example queries (what they do)
+Count total rows in dataset
+Identify distinct content types
 
-- Count rows: `SELECT COUNT(*) FROM netflix_db;`
-- Distinct content types: `SELECT DISTINCT type FROM netflix_db;`
-- Count Movies vs TV Shows:
-  ```sql
-  SELECT type, COUNT(*) AS Total_number
-  FROM netflix_db
-  GROUP BY type;
-  ```
-- Most common rating per type (uses window function):
-  ```sql
-  SELECT type, rating, total_count
-  FROM (
-    SELECT type, rating, COUNT(*) AS total_count,
-      ROW_NUMBER() OVER(PARTITION BY type ORDER BY COUNT(*) DESC) AS ranking
-    FROM netflix_db
-    WHERE rating IS NOT NULL AND rating != ''
-    GROUP BY type, rating
-  ) AS rank_rating
-  WHERE ranking = 1;
-  ```
-- Movies released in a specific year (example 2020):
-  ```sql
-  SELECT show_id, type, title, release_year
-  FROM netflix_db
-  WHERE type = 'Movie' AND release_year = 2020;
-  ```
-- Top 5 countries with most content (extracts first country listed):
-  ```sql
-  SELECT TRIM(SUBSTRING_INDEX(country, ',', 1)) AS country_name, COUNT(*) AS total_content
-  FROM netflix_db
-  WHERE country IS NOT NULL AND country != ''
-  GROUP BY country_name
-  ORDER BY total_content DESC
-  LIMIT 5;
-  ```
-- Longest movie by numeric value in `duration` (expects `duration` like `120 min`):
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE type = 'Movie'
-  ORDER BY CAST(SUBSTRING_INDEX(duration, ' ', 1) AS UNSIGNED) DESC
-  LIMIT 1;
-  ```
-- Find content added in last 5 years (parses `date_added` using format like `September 9, 2020`):
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE STR_TO_DATE(date_added, '%M %e, %Y') >= CURRENT_DATE() - INTERVAL 5 YEAR;
-  ```
-- Search by director name:
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE director LIKE '%Rajiv Chilaka%';
-  ```
-- TV shows with more than 5 seasons (string comparison in provided script is not robust):
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE type = 'TV Show' AND CAST(SUBSTRING_INDEX(duration, ' ', 1) AS UNSIGNED) > 5;
-  ```
-- Count content items per genre (script groups by `listed_in` — consider splitting multiple genres first):
-  ```sql
-  SELECT listed_in AS genre, COUNT(*) AS total_content
-  FROM netflix_db
-  GROUP BY listed_in
-  ORDER BY total_content DESC;
-  ```
-- Movies that are documentaries:
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE listed_in LIKE '%Documentaries%';
-  ```
-- Content without a director:
-  ```sql
-  SELECT * FROM netflix_db
-  WHERE director IS NULL OR director = '';
-  ```
 
-## Suggested improvements
+2. Content Distribution (Query #1)
 
-- Normalize the schema: separate tables for directors, cast, countries, and genres to avoid string parsing and improve joins/performance.
-- Use appropriate column types: DATE for `date_added`, INT for season counts/durations (or separate columns for `runtime_minutes` and `seasons`).
-- Load real dataset and provide sample import instructions (CSV or bulk load).
-- Add constraints (primary key on `show_id`) and indexes (on `release_year`, `type`, `country`) for better query performance.
 
-## Contributing
+Count Movies vs TV Shows
+Groups content by type with totals
 
-Contributions are welcome. If you'd like help loading a CSV file into the table, normalizing the schema, or adding more queries and visualizations, open an issue or submit a pull request.
 
-## License
+3. Rating Analysis (Query #2)
 
-Specify a license for the repository (for example, MIT) if you want others to reuse the scripts.
+
+Finds the most common rating for each content type
+Uses window functions (ROW_NUMBER) for ranking
+
+
+4. Movies by Year (Query #3)
+
+
+Lists all movies released in a specific year (example: 2020)
+Easy to modify for different years
+
+
+5. Top Countries (Query #4)
+
+
+Identifies top 5 countries with the most Netflix content
+Handles comma-separated country values using SUBSTRING_INDEX
+
+
+6. Longest Movie (Query #5)
+
+
+Finds the movie with the maximum duration
+Extracts numeric duration value for proper sorting
+
+
+7. Recent Content (Query #6)
+
+
+Finds all content added in the last 5 years
+Uses date calculations and string parsing
+
+
+8. Director Search (Query #7)
+
+
+Lists all movies/TV shows by a specific director
+Example: Rajiv Chilaka
+
+
+9. TV Show Seasons (Query #8)
+
+
+Lists TV shows with more than 5 seasons
+
+
+10. Genre Analysis (Query #9)
+
+
+Counts content items in each genre
+Orders results by popularity
+
+
+11. India Content Analysis (Query #10)
+
+
+Shows content release trends for India
+Returns top 5 years by release count
+Includes percentage calculations
+
+
+12. Documentary Filter (Query #11)
+
+
+Lists all movies that are classified as documentaries
+
+
+13. Missing Data Check (Query #12)
+
+
+Identifies content without director information
+
+
+How to Use
+
+
+Setup the Database:
+
+
+sql   -- Run the entire script or just the CREATE statements
+   mysql -u username -p < NETFLIX_SQL.sql
+
+
+Load Your Data:
+
+Insert your Netflix dataset into the netflix_db table using INSERT statements or LOAD DATA INFILE
+
+
+
+Run Individual Queries:
+
+Execute any of the pre-built queries to analyze different aspects of the data
+Modify query parameters (e.g., year, director name, etc.) as needed
+
+
+
+Customize Queries:
+
+Adapt the WHERE clauses to filter for specific countries, years, or ratings
+Combine queries to create more complex analyses
+
+
+
+
+
+Important Notes
+
+
+Data Format Issues: The date_added column uses string format ('%M %e, %Y'). Ensure your data matches this format
+String Parsing: Queries use SUBSTRING_INDEX and TRIM for handling comma-separated values (country, cast, etc.)
+Null Handling: Several queries check for NULL and empty string values
+Performance: For large datasets, consider adding indexes on frequently queried columns like type, release_year, and country
+
+
+Recommended Indexes
+
+For better query performance with large datasets:
+
+sqlCREATE INDEX idx_type ON netflix_db(type);
+CREATE INDEX idx_release_year ON netflix_db(release_year);
+CREATE INDEX idx_country ON netflix_db(country);
+CREATE INDEX idx_director ON netflix_db(director);
+CREATE INDEX idx_rating ON netflix_db(rating);
+
+Sample Modifications
+
+Find Movies Released in 2022
+
+sqlSELECT show_id, type, title, release_year
+FROM netflix_db
+WHERE type = 'Movie' AND release_year = 2022;
+
+Find Content by Multiple Directors
+
+sqlSELECT * FROM netflix_db
+WHERE director LIKE '%Director_Name1%' OR director LIKE '%Director_Name2%';
+
+Content by Country and Year
+
+sqlSELECT country, release_year, COUNT(*) AS content_count
+FROM netflix_db
+WHERE country LIKE '%India%'
+GROUP BY country, release_year
+ORDER BY release_year DESC;
+
+Troubleshooting
+
+IssueSolutionQueries return no resultsCheck that data has been imported into the tableDate-related errorsVerify date_added format matches '%M %e, %Y'Incorrect LIMIT resultsEnsure release_year or duration values are numeric/properly formattedEmpty director resultsCheck for NULL values and proper wildcard usage in LIKE clauses
+
+Future Enhancements
+
+
+Add more sophisticated genre analysis (handle multiple genres per content)
+Implement time-series analysis for content releases
+Create views for commonly used queries
+Add stored procedures for complex analysis
+Implement data validation and cleaning queries
+
+
+License & Credits
+
+This SQL analysis template is designed for educational and analytical purposes on Netflix content metadata.
